@@ -34,10 +34,16 @@ function validateInput(body: Partial<SiteProfileInput>): string | null {
   return null;
 }
 
+const asyncHandler =
+  (fn: (req: express.Request, res: express.Response) => Promise<unknown>) =>
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    Promise.resolve(fn(req, res)).catch(next);
+  };
+
 export function createApp(): express.Application {
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: "1mb" }));
 
   // Yerel geliştirme: Netlify public/ klasörünü kullanmaz
   if (!process.env.NETLIFY) {
@@ -45,17 +51,17 @@ export function createApp(): express.Application {
     app.use("/site-template", express.static(join(ROOT, "site-template")));
   }
 
-  app.get("/api/sites", async (_req, res) => {
+  app.get("/api/sites", asyncHandler(async (_req, res) => {
     res.json(await listSites());
-  });
+  }));
 
-  app.get("/api/sites/:slug", async (req, res) => {
+  app.get("/api/sites/:slug", asyncHandler(async (req, res) => {
     const site = await getSite(req.params.slug);
     if (!site) return res.status(404).json({ error: "Site bulunamadı." });
     res.json(site);
-  });
+  }));
 
-  app.post("/api/sites", async (req, res) => {
+  app.post("/api/sites", asyncHandler(async (req, res) => {
     const body = req.body as Partial<SiteProfileInput>;
     const error = validateInput(body);
     if (error) return res.status(400).json({ error });
@@ -88,18 +94,25 @@ export function createApp(): express.Application {
       siteUrl: `/site/${slug}`,
       previewUrl: `/site/${slug}`,
     });
-  });
+  }));
 
-  app.delete("/api/sites/:slug", async (req, res) => {
+  app.delete("/api/sites/:slug", asyncHandler(async (req, res) => {
     const ok = await deleteSite(req.params.slug);
     if (!ok) return res.status(404).json({ error: "Site bulunamadı." });
     res.json({ success: true });
-  });
+  }));
 
-  app.get("/site/:slug", async (req, res) => {
+  app.get("/site/:slug", asyncHandler(async (req, res) => {
     const site = await getSite(req.params.slug);
     if (!site) return res.status(404).send("Bu firma için site henüz oluşturulmamış.");
     res.type("html").send(renderSite(site));
+  }));
+
+  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("API hatası:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || "Sunucu hatası." });
+    }
   });
 
   app.get("/", (_req, res) => {

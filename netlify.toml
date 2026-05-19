@@ -9,7 +9,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["site-template/**", "backend/dist/**"]
+  included_files = ["site-template/**"]
 
 [[redirects]]
   from = "/api/*"

@@ -9,7 +9,7 @@ const DATA_FILE = join(DATA_DIR, "sites.json");
 const TMP_DATA_FILE = "/tmp/appointment-sites.json";
 const BLOB_KEY = "sites";
 
-const useNetlifyBlobs = Boolean(process.env.NETLIFY) || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+const isLambda = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 
 function ensureDataFile(): void {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -18,34 +18,39 @@ function ensureDataFile(): void {
 
 function readFromFile(path: string): SiteProfile[] {
   if (!existsSync(path)) return [];
-  return JSON.parse(readFileSync(path, "utf-8")) as SiteProfile[];
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as SiteProfile[];
+  } catch {
+    return [];
+  }
 }
 
 function writeToFile(path: string, sites: SiteProfile[]): void {
   const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(path, JSON.stringify(sites, null, 2), "utf-8");
+  if (dir !== "/tmp" && !existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(path, JSON.stringify(sites), "utf-8");
 }
 
 async function readFromBlobs(): Promise<SiteProfile[]> {
   const { getStore } = await import("@netlify/blobs");
-  const store = getStore("appointment-sites");
-  const raw = await store.get(BLOB_KEY, { type: "text" });
+  const store = getStore({ name: "appointment-sites", consistency: "strong" });
+  const raw = await store.get(BLOB_KEY);
   if (!raw) return [];
   return JSON.parse(raw) as SiteProfile[];
 }
 
 async function writeToBlobs(sites: SiteProfile[]): Promise<void> {
   const { getStore } = await import("@netlify/blobs");
-  const store = getStore("appointment-sites");
+  const store = getStore({ name: "appointment-sites", consistency: "strong" });
   await store.set(BLOB_KEY, JSON.stringify(sites));
 }
 
 async function readAll(): Promise<SiteProfile[]> {
-  if (useNetlifyBlobs) {
+  if (isLambda) {
     try {
       return await readFromBlobs();
-    } catch {
+    } catch (blobErr) {
+      console.warn("Blobs okunamadı, /tmp kullanılıyor:", blobErr);
       return readFromFile(TMP_DATA_FILE);
     }
   }
@@ -54,11 +59,13 @@ async function readAll(): Promise<SiteProfile[]> {
 }
 
 async function writeAll(sites: SiteProfile[]): Promise<void> {
-  if (useNetlifyBlobs) {
+  if (isLambda) {
     try {
       await writeToBlobs(sites);
+      writeToFile(TMP_DATA_FILE, sites);
       return;
-    } catch {
+    } catch (blobErr) {
+      console.warn("Blobs yazılamadı, /tmp kullanılıyor:", blobErr);
       writeToFile(TMP_DATA_FILE, sites);
       return;
     }
