@@ -11,7 +11,7 @@ appointment_system/
 └── site-template/    # Müşteri sitesi şablonu (HTML/CSS)
 ```
 
-## Kurulum
+## Kurulum (yerel)
 
 ```bash
 cd backend
@@ -20,6 +20,16 @@ npm run dev
 ```
 
 Tarayıcıda: **http://localhost:3000/dashboard**
+
+## Netlify’da yayınlama
+
+1. GitHub reposunu Netlify’a bağlayın.
+2. Build ayarları otomatik `netlify.toml` dosyasından okunur:
+   - **Build command:** `npm run build:netlify`
+   - **Publish directory:** `public`
+3. Deploy sonrası ana sayfa: `https://siteniz.netlify.app/dashboard/`
+
+API ve dinamik müşteri siteleri (`/api/*`, `/site/*`) Netlify Functions üzerinden çalışır. Veriler Netlify Blobs’ta saklanır.
 
 ## Kullanım
 

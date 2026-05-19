@@ -1,10 +1,21 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import type { SiteProfile } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TEMPLATE_DIR = join(__dirname, "..", "..", "site-template");
+
+function getTemplateDir(): string {
+  const candidates = [
+    join(process.cwd(), "site-template"),
+    join(process.cwd(), "public", "site-template"),
+    join(__dirname, "..", "..", "site-template"),
+  ];
+  for (const dir of candidates) {
+    if (existsSync(join(dir, "index.html"))) return dir;
+  }
+  return candidates[0];
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -28,7 +39,7 @@ function servicesHtml(services: string): string {
 }
 
 export function renderSite(profile: SiteProfile): string {
-  let html = readFileSync(join(TEMPLATE_DIR, "index.html"), "utf-8");
+  let html = readFileSync(join(getTemplateDir(), "index.html"), "utf-8");
 
   const logoBlock = profile.logoUrl
     ? `<img src="${escapeHtml(profile.logoUrl)}" alt="${escapeHtml(profile.companyName)}" class="logo-img">`

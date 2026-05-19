@@ -1,0 +1,27 @@
+[build]
+  command = "npm run build:netlify"
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NETLIFY = "true"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["site-template/**", "backend/dist/**"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/site/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/"
+  to = "/dashboard/index.html"
+  status = 200

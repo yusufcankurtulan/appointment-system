@@ -5,6 +5,14 @@
   "scripts": {
     "dev": "npm run dev --prefix backend",
     "build": "npm run build --prefix backend",
-    "start": "npm run start --prefix backend"
+    "start": "npm run start --prefix backend",
+    "build:netlify": "node scripts/prepare-public.mjs && npm install --prefix backend && npm run build --prefix backend && npm install"
+  },
+  "dependencies": {
+    "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.8.2",
+    "@types/aws-lambda": "^8.10.147"
   }
 }
