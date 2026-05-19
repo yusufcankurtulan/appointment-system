@@ -1,0 +1,10 @@
+{
+  "name": "appointment-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix backend",
+    "build": "npm run build --prefix backend",
+    "start": "npm run start --prefix backend"
+  }
+}
