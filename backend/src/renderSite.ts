@@ -1,5 +1,6 @@
 import type { SiteProfile } from "./types.js";
 import { SITE_TEMPLATE_HTML } from "./templateHtml.js";
+import { getCategoryLabel } from "./categories.js";
 
 function escapeHtml(text: string): string {
   return text
@@ -37,6 +38,8 @@ export function renderSite(profile: SiteProfile): string {
     "{{email}}": escapeHtml(profile.email),
     "{{address}}": escapeHtml(profile.address),
     "{{workingHours}}": escapeHtml(profile.workingHours),
+    "{{categoryLabel}}": escapeHtml(getCategoryLabel(profile.category)),
+    "{{siteSlug}}": escapeHtml(profile.slug),
     "{{primaryColor}}": escapeHtml(profile.primaryColor || "#2563eb"),
     "{{logoBlock}}": logoBlock,
     "{{servicesList}}": servicesHtml(profile.services),

@@ -9,7 +9,7 @@
 <body>
   <header class="header">
     <h1>Randevu Sitesi Oluşturucu</h1>
-    <p>Firma bilgilerinizi girin; müşterileriniz online randevu alsın.</p>
+    <p>Firma bilgilerinizi girin; özelleştirilmiş web siteniz hazır olsun.</p>
   </header>
 
   <main class="layout">
@@ -19,13 +19,6 @@
         <div class="field">
           <label for="companyName">Firma adı *</label>
           <input type="text" id="companyName" name="companyName" required placeholder="Örn: Güzellik Salonu Ayşe">
-        </div>
-
-        <div class="field">
-          <label for="category">İş kolu / Kategori *</label>
-          <select id="category" name="category" required>
-            <option value="">Seçiniz...</option>
-          </select>
         </div>
 
         <div class="field">
@@ -63,48 +56,14 @@
           <input type="text" id="address" name="address" placeholder="Mahalle, cadde, il">
         </div>
 
-        <fieldset class="schedule-fieldset">
-          <legend>Randevu takvimi ayarları</legend>
-          <div class="grid-3">
-            <div class="field">
-              <label for="workStart">Başlangıç</label>
-              <input type="time" id="workStart" name="workStart" value="09:00">
-            </div>
-            <div class="field">
-              <label for="workEnd">Bitiş</label>
-              <input type="time" id="workEnd" name="workEnd" value="18:00">
-            </div>
-            <div class="field">
-              <label for="slotDuration">Slot süresi (dk)</label>
-              <select id="slotDuration" name="slotDuration">
-                <option value="15">15 dk</option>
-                <option value="30" selected>30 dk</option>
-                <option value="45">45 dk</option>
-                <option value="60">60 dk</option>
-              </select>
-            </div>
-          </div>
-          <div class="field">
-            <span class="label-text">Çalışılan günler</span>
-            <div class="day-checks" id="work-days">
-              <label><input type="checkbox" value="1" checked> Pzt</label>
-              <label><input type="checkbox" value="2" checked> Sal</label>
-              <label><input type="checkbox" value="3" checked> Çar</label>
-              <label><input type="checkbox" value="4" checked> Per</label>
-              <label><input type="checkbox" value="5" checked> Cum</label>
-              <label><input type="checkbox" value="6"> Cmt</label>
-              <label><input type="checkbox" value="0"> Paz</label>
-            </div>
-          </div>
-          <div class="field">
-            <label for="workingHours">Görünen çalışma saatleri (sitede)</label>
-            <input type="text" id="workingHours" name="workingHours" value="Pazartesi – Cuma: 09:00 – 18:00">
-          </div>
-        </fieldset>
+        <div class="field">
+          <label for="workingHours">Çalışma saatleri</label>
+          <input type="text" id="workingHours" name="workingHours" value="Pazartesi – Cuma: 09:00 – 18:00">
+        </div>
 
         <div class="field">
           <label for="services">Hizmetler</label>
-          <input type="text" id="services" name="services" placeholder="Saç kesimi, Manikür (virgülle ayırın)">
+          <input type="text" id="services" name="services" placeholder="Saç kesimi, Manikür, Cilt bakımı (virgülle ayırın)">
         </div>
 
         <div class="grid-2">
@@ -131,10 +90,6 @@
       <ul id="sites-list" class="sites-list">
         <li class="empty">Henüz site yok.</li>
       </ul>
-      <div id="appointments-panel" class="appointments-panel" hidden>
-        <h3 id="appt-panel-title">Randevular</h3>
-        <ul id="appointments-list" class="appointments-list"></ul>
-      </div>
     </section>
   </main>
 

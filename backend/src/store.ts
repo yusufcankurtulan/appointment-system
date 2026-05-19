@@ -2,6 +2,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { dirname } from "path";
 import type { SiteProfile } from "./types.js";
 import { getLocalDataFile, isLambda } from "./paths.js";
+import { normalizeSite } from "./normalize.js";
+import { deleteAppointmentsForSite } from "./appointmentStore.js";
 
 const TMP_DATA_FILE = "/tmp/appointment-sites.json";
 const BLOB_KEY = "sites";
@@ -66,20 +68,22 @@ async function writeAll(sites: SiteProfile[]): Promise<void> {
 }
 
 export async function listSites(): Promise<SiteProfile[]> {
-  return readAll();
+  return (await readAll()).map((s) => normalizeSite(s));
 }
 
 export async function getSite(slug: string): Promise<SiteProfile | undefined> {
-  return (await readAll()).find((s) => s.slug === slug);
+  const site = (await readAll()).find((s) => s.slug === slug);
+  return site ? normalizeSite(site) : undefined;
 }
 
 export async function saveSite(profile: SiteProfile): Promise<SiteProfile> {
+  const normalized = normalizeSite(profile);
   const sites = await readAll();
-  const index = sites.findIndex((s) => s.slug === profile.slug);
-  if (index >= 0) sites[index] = profile;
-  else sites.push(profile);
+  const index = sites.findIndex((s) => s.slug === normalized.slug);
+  if (index >= 0) sites[index] = normalized;
+  else sites.push(normalized);
   await writeAll(sites);
-  return profile;
+  return normalized;
 }
 
 export async function deleteSite(slug: string): Promise<boolean> {
@@ -87,5 +91,6 @@ export async function deleteSite(slug: string): Promise<boolean> {
   const next = sites.filter((s) => s.slug !== slug);
   if (next.length === sites.length) return false;
   await writeAll(next);
+  await deleteAppointmentsForSite(slug);
   return true;
 }
