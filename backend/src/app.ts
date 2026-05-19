@@ -1,13 +1,10 @@
 import express from "express";
 import cors from "cors";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 import { deleteSite, getSite, listSites, saveSite } from "./store.js";
 import { renderSite } from "./renderSite.js";
 import type { SiteProfile, SiteProfileInput } from "./types.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..", "..");
+import { getProjectRoot, isLambda } from "./paths.js";
 
 export function slugify(text: string): string {
   const tr: Record<string, string> = {
@@ -46,9 +43,10 @@ export function createApp(): express.Application {
   app.use(express.json({ limit: "1mb" }));
 
   // Yerel geliştirme: Netlify public/ klasörünü kullanmaz
-  if (!process.env.NETLIFY) {
-    app.use("/dashboard", express.static(join(ROOT, "dashboard")));
-    app.use("/site-template", express.static(join(ROOT, "site-template")));
+  if (!isLambda && !process.env.NETLIFY) {
+    const root = getProjectRoot();
+    app.use("/dashboard", express.static(join(root, "dashboard")));
+    app.use("/site-template", express.static(join(root, "site-template")));
   }
 
   app.get("/api/sites", asyncHandler(async (_req, res) => {

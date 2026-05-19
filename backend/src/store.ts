@@ -1,23 +1,13 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { dirname } from "path";
 import type { SiteProfile } from "./types.js";
+import { getLocalDataFile, isLambda } from "./paths.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, "..", "data");
-const DATA_FILE = join(DATA_DIR, "sites.json");
 const TMP_DATA_FILE = "/tmp/appointment-sites.json";
 const BLOB_KEY = "sites";
 
-const isLambda = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
-
-function ensureDataFile(): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  if (!existsSync(DATA_FILE)) writeFileSync(DATA_FILE, "[]", "utf-8");
-}
-
 function readFromFile(path: string): SiteProfile[] {
-  if (!existsSync(path)) return [];
+  if (!path || !existsSync(path)) return [];
   try {
     return JSON.parse(readFileSync(path, "utf-8")) as SiteProfile[];
   } catch {
@@ -26,8 +16,9 @@ function readFromFile(path: string): SiteProfile[] {
 }
 
 function writeToFile(path: string, sites: SiteProfile[]): void {
+  if (!path) return;
   const dir = dirname(path);
-  if (dir !== "/tmp" && !existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (dir && dir !== "/tmp" && !existsSync(dir)) mkdirSync(dir, { recursive: true });
   writeFileSync(path, JSON.stringify(sites), "utf-8");
 }
 
@@ -54,8 +45,9 @@ async function readAll(): Promise<SiteProfile[]> {
       return readFromFile(TMP_DATA_FILE);
     }
   }
-  ensureDataFile();
-  return readFromFile(DATA_FILE);
+  const dataFile = getLocalDataFile();
+  if (!existsSync(dataFile)) writeToFile(dataFile, []);
+  return readFromFile(dataFile);
 }
 
 async function writeAll(sites: SiteProfile[]): Promise<void> {
@@ -70,8 +62,7 @@ async function writeAll(sites: SiteProfile[]): Promise<void> {
       return;
     }
   }
-  ensureDataFile();
-  writeToFile(DATA_FILE, sites);
+  writeToFile(getLocalDataFile(), sites);
 }
 
 export async function listSites(): Promise<SiteProfile[]> {

@@ -6,7 +6,7 @@
     "dev": "npm run dev --prefix backend",
     "build": "npm run build --prefix backend",
     "start": "npm run start --prefix backend",
-    "build:netlify": "node scripts/prepare-public.mjs && npm install --prefix backend && npm run build --prefix backend && npm install"
+    "build:netlify": "node scripts/generate-template.mjs && node scripts/prepare-public.mjs && npm install --prefix backend && npm run build --prefix backend && npm install"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
