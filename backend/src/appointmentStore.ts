@@ -6,6 +6,18 @@ import { getProjectRoot, isLambda } from "./paths.js";
 const TMP_FILE = "/tmp/appointment-bookings.json";
 const BLOB_KEY = "appointments";
 
+const BLOB_REQUIRED_ENV = [
+  "NETLIFY",
+  "NETLIFY_SITE_ID",
+  "NETLIFY_AUTH_TOKEN",
+  "NETLIFY_TOKEN",
+  "NETLIFY_ACCESS_TOKEN",
+];
+
+function canUseBlobStore(): boolean {
+  return BLOB_REQUIRED_ENV.some((name) => Boolean(process.env[name]));
+}
+
 function getLocalAppointmentsFile(): string {
   const root = getProjectRoot();
   return join(root, "backend", "data", "appointments.json");
@@ -43,6 +55,9 @@ async function writeToBlobs(items: Appointment[]): Promise<void> {
 
 async function readAll(): Promise<Appointment[]> {
   if (isLambda) {
+    if (!canUseBlobStore()) {
+      return readFromFile(TMP_FILE);
+    }
     try {
       return await readFromBlobs();
     } catch {
@@ -56,6 +71,10 @@ async function readAll(): Promise<Appointment[]> {
 
 async function writeAll(items: Appointment[]): Promise<void> {
   if (isLambda) {
+    if (!canUseBlobStore()) {
+      writeToFile(TMP_FILE, items);
+      return;
+    }
     try {
       await writeToBlobs(items);
       writeToFile(TMP_FILE, items);

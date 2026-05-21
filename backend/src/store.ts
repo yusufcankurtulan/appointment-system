@@ -8,6 +8,18 @@ import { deleteAppointmentsForSite } from "./appointmentStore.js";
 const TMP_DATA_FILE = "/tmp/appointment-sites.json";
 const BLOB_KEY = "sites";
 
+const BLOB_REQUIRED_ENV = [
+  "NETLIFY",
+  "NETLIFY_SITE_ID",
+  "NETLIFY_AUTH_TOKEN",
+  "NETLIFY_TOKEN",
+  "NETLIFY_ACCESS_TOKEN",
+];
+
+function canUseBlobStore(): boolean {
+  return BLOB_REQUIRED_ENV.some((name) => Boolean(process.env[name]));
+}
+
 function readFromFile(path: string): SiteProfile[] {
   if (!path || !existsSync(path)) return [];
   try {
@@ -40,10 +52,12 @@ async function writeToBlobs(sites: SiteProfile[]): Promise<void> {
 
 async function readAll(): Promise<SiteProfile[]> {
   if (isLambda) {
+    if (!canUseBlobStore()) {
+      return readFromFile(TMP_DATA_FILE);
+    }
     try {
       return await readFromBlobs();
-    } catch (blobErr) {
-      console.warn("Blobs okunamadı, /tmp kullanılıyor:", blobErr);
+    } catch {
       return readFromFile(TMP_DATA_FILE);
     }
   }
@@ -54,12 +68,15 @@ async function readAll(): Promise<SiteProfile[]> {
 
 async function writeAll(sites: SiteProfile[]): Promise<void> {
   if (isLambda) {
+    if (!canUseBlobStore()) {
+      writeToFile(TMP_DATA_FILE, sites);
+      return;
+    }
     try {
       await writeToBlobs(sites);
       writeToFile(TMP_DATA_FILE, sites);
       return;
-    } catch (blobErr) {
-      console.warn("Blobs yazılamadı, /tmp kullanılıyor:", blobErr);
+    } catch {
       writeToFile(TMP_DATA_FILE, sites);
       return;
     }

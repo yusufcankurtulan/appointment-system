@@ -19,6 +19,18 @@ export interface AdminSettings {
 const TMP_FILE = "/tmp/appointment-admin.json";
 const BLOB_KEY = "admin";
 
+const BLOB_REQUIRED_ENV = [
+  "NETLIFY",
+  "NETLIFY_SITE_ID",
+  "NETLIFY_AUTH_TOKEN",
+  "NETLIFY_TOKEN",
+  "NETLIFY_ACCESS_TOKEN",
+];
+
+function canUseBlobStore(): boolean {
+  return BLOB_REQUIRED_ENV.some((name) => Boolean(process.env[name]));
+}
+
 function getLocalFile(): string {
   return join(getProjectRoot(), "backend", "data", "admin.json");
 }
@@ -88,10 +100,14 @@ export async function getAdminSettings(): Promise<AdminSettings> {
   let settings: AdminSettings | null = null;
 
   if (isLambda) {
-    try {
-      settings = await readFromBlobs();
-    } catch {
+    if (!canUseBlobStore()) {
       settings = readFromFile(TMP_FILE);
+    } else {
+      try {
+        settings = await readFromBlobs();
+      } catch {
+        settings = readFromFile(TMP_FILE);
+      }
     }
   } else {
     settings = readFromFile(getLocalFile());
@@ -108,6 +124,10 @@ export async function getAdminSettings(): Promise<AdminSettings> {
 export async function saveAdminSettings(settings: AdminSettings): Promise<void> {
   settings.updatedAt = new Date().toISOString();
   if (isLambda) {
+    if (!canUseBlobStore()) {
+      writeToFile(TMP_FILE, settings);
+      return;
+    }
     try {
       await writeToBlobs(settings);
       writeToFile(TMP_FILE, settings);
