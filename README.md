@@ -28,7 +28,9 @@ Tarayıcıda: **http://localhost:3000/dashboard** (giriş sayfasına yönlendiri
 | Kullanıcı | `admin` |
 | Şifre | `admin123` |
 
-Üretimde `.env.example` dosyasındaki değişkenleri ayarlayın:
+**Ayarlar** sekmesinden kullanıcı adı, şifre, dashboard başlığı ve yeni site varsayılanlarını değiştirebilirsiniz. Değişiklikler kalıcı olarak saklanır (`admin.json` / Netlify Blobs).
+
+Üretimde `.env.example` dosyasındaki değişkenleri ayarlayın (ilk kurulum için):
 
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD` (güçlü şifre)
@@ -59,6 +61,7 @@ Kayıtlı siteler sağ panelde listelenir; siteyi açabilir veya silebilirsiniz.
 | Metot | Endpoint | Açıklama |
 |-------|----------|----------|
 | POST | `/api/auth/login` | Dashboard girişi |
+| GET/PUT | `/api/settings` | Hesap ayarları (giriş gerekli) |
 | GET | `/api/sites` | Tüm siteler (giriş gerekli) |
 | POST | `/api/sites` | Site oluştur / güncelle (giriş gerekli) |
 | GET | `/site/:slug` | Özelleştirilmiş HTML site (herkese açık) |

@@ -29,6 +29,7 @@ form.addEventListener("submit", async (e) => {
     if (!res.ok) throw new Error(data.error || "Giriş başarısız.");
 
     DashboardAuth.setSession(data.token, data.username);
+    if (data.displayName) sessionStorage.setItem("dashboard_display_name", data.displayName);
     window.location.replace("/dashboard/");
   } catch (err) {
     showError(err.message);

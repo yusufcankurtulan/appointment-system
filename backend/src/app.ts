@@ -10,6 +10,7 @@ import { normalizeSite } from "./normalize.js";
 import { getAvailableSlots } from "./slots.js";
 import { createAppointment, listAppointments } from "./appointmentStore.js";
 import { loginHandler, requireAuth } from "./auth.js";
+import { getSettingsHandler, updateSettingsHandler } from "./settingsRoutes.js";
 
 export function slugify(text: string): string {
   const tr: Record<string, string> = {
@@ -77,12 +78,15 @@ export function createApp(): express.Application {
     app.use("/site-template", express.static(join(root, "site-template")));
   }
 
-  app.post("/api/auth/login", (req, res) => loginHandler(req, res));
+  app.post("/api/auth/login", asyncHandler(async (req, res) => loginHandler(req, res)));
 
-  app.get("/api/auth/me", requireAuth, (req, res) => {
+  app.get("/api/auth/me", requireAuth, asyncHandler(async (req, res) => {
     const user = (req as express.Request & { user?: string }).user;
     res.json({ username: user });
-  });
+  }));
+
+  app.get("/api/settings", requireAuth, asyncHandler(getSettingsHandler));
+  app.put("/api/settings", requireAuth, asyncHandler(updateSettingsHandler));
 
   app.get("/api/categories", (_req, res) => {
     res.json(CATEGORIES);

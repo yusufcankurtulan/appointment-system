@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Request, Response, NextFunction } from "express";
+import { verifyLogin, getAdminSettings } from "./adminStore.js";
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -12,20 +13,6 @@ function getSecret(): string {
     return "yerel-gelistirme-gizli-anahtar";
   }
   return secret;
-}
-
-export function getAdminCredentials(): { username: string; password: string } {
-  return {
-    username: process.env.ADMIN_USERNAME || "admin",
-    password: process.env.ADMIN_PASSWORD || "admin123",
-  };
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return timingSafeEqual(bufA, bufB);
 }
 
 export function createToken(username: string): string {
@@ -72,20 +59,22 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   next();
 }
 
-export function loginHandler(req: Request, res: Response): void {
+export async function loginHandler(req: Request, res: Response): Promise<void> {
   const { username, password } = req.body as { username?: string; password?: string };
   if (!username?.trim() || !password) {
     res.status(400).json({ error: "Kullanıcı adı ve şifre gerekli." });
     return;
   }
-  const admin = getAdminCredentials();
-  if (!safeEqual(username.trim(), admin.username) || !safeEqual(password, admin.password)) {
+  const ok = await verifyLogin(username.trim(), password);
+  if (!ok) {
     res.status(401).json({ error: "Kullanıcı adı veya şifre hatalı." });
     return;
   }
+  const settings = await getAdminSettings();
   res.json({
-    token: createToken(admin.username),
-    username: admin.username,
+    token: createToken(settings.username),
+    username: settings.username,
+    displayName: settings.displayName,
     expiresIn: TOKEN_TTL_MS,
   });
 }

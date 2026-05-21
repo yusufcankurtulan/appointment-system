@@ -2,4 +2,5 @@ node_modules/
 backend/dist/
 backend/data/sites.json
 backend/data/appointments.json
+backend/data/admin.json
 .DS_Store

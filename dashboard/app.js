@@ -62,6 +62,32 @@ function setWorkDays(value) {
   });
 }
 
+function formatWorkingHoursLabel(start, end, daysStr) {
+  const dayNames = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+  const days = (daysStr || "1,2,3,4,5").split(",").map(Number).sort();
+  const labels = days.map((d) => dayNames[d]).join(", ");
+  return `${labels}: ${start} – ${end}`;
+}
+
+window.applySiteDefaults = function (s) {
+  if (!s) return;
+  if (s.defaultWorkStart) form.workStart.value = s.defaultWorkStart;
+  if (s.defaultWorkEnd) form.workEnd.value = s.defaultWorkEnd;
+  if (s.defaultSlotDuration) form.slotDuration.value = String(s.defaultSlotDuration);
+  if (s.defaultWorkDays) setWorkDays(s.defaultWorkDays);
+  if (s.defaultWorkStart && s.defaultWorkEnd) {
+    form.workingHours.value = formatWorkingHoursLabel(
+      s.defaultWorkStart,
+      s.defaultWorkEnd,
+      s.defaultWorkDays || "1,2,3,4,5"
+    );
+  }
+  if (s.displayName) {
+    document.getElementById("dashboard-title").textContent = s.displayName;
+    document.title = `${s.displayName} — Dashboard`;
+  }
+};
+
 function getFormData() {
   return {
     companyName: form.companyName.value,
