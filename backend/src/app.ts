@@ -9,6 +9,7 @@ import { CATEGORIES } from "./categories.js";
 import { normalizeSite } from "./normalize.js";
 import { getAvailableSlots } from "./slots.js";
 import { createAppointment, listAppointments } from "./appointmentStore.js";
+import { loginHandler, requireAuth } from "./auth.js";
 
 export function slugify(text: string): string {
   const tr: Record<string, string> = {
@@ -76,11 +77,18 @@ export function createApp(): express.Application {
     app.use("/site-template", express.static(join(root, "site-template")));
   }
 
+  app.post("/api/auth/login", (req, res) => loginHandler(req, res));
+
+  app.get("/api/auth/me", requireAuth, (req, res) => {
+    const user = (req as express.Request & { user?: string }).user;
+    res.json({ username: user });
+  });
+
   app.get("/api/categories", (_req, res) => {
     res.json(CATEGORIES);
   });
 
-  app.get("/api/sites", asyncHandler(async (_req, res) => {
+  app.get("/api/sites", requireAuth, asyncHandler(async (_req, res) => {
     res.json(await listSites());
   }));
 
@@ -98,7 +106,7 @@ export function createApp(): express.Application {
     res.json({ date, slots: getAvailableSlots(site, date, booked) });
   }));
 
-  app.get("/api/sites/:slug/appointments", asyncHandler(async (req, res) => {
+  app.get("/api/sites/:slug/appointments", requireAuth, asyncHandler(async (req, res) => {
     const site = await getSite(req.params.slug);
     if (!site) return res.status(404).json({ error: "Site bulunamadı." });
     const appointments = await listAppointments(site.slug);
@@ -132,7 +140,7 @@ export function createApp(): express.Application {
     res.status(201).json({ appointment });
   }));
 
-  app.post("/api/sites", asyncHandler(async (req, res) => {
+  app.post("/api/sites", requireAuth, asyncHandler(async (req, res) => {
     const body = req.body as Partial<SiteProfileInput>;
     const error = validateInput(body);
     if (error) return res.status(400).json({ error });
@@ -151,7 +159,7 @@ export function createApp(): express.Application {
     });
   }));
 
-  app.delete("/api/sites/:slug", asyncHandler(async (req, res) => {
+  app.delete("/api/sites/:slug", requireAuth, asyncHandler(async (req, res) => {
     const ok = await deleteSite(req.params.slug);
     if (!ok) return res.status(404).json({ error: "Site bulunamadı." });
     res.json({ success: true });

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giriş — Randevu Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <h1>Dashboard Girişi</h1>
+    <p class="login-sub">Yönetim paneline erişmek için giriş yapın.</p>
+    <form id="login-form">
+      <div class="field">
+        <label for="username">Kullanıcı adı</label>
+        <input type="text" id="username" name="username" required autocomplete="username" placeholder="admin">
+      </div>
+      <div class="field">
+        <label for="password">Şifre</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
+    </form>
+    <p id="login-message" class="message" hidden></p>
+  </div>
+  <script src="auth.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

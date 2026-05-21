@@ -19,7 +19,22 @@ npm install
 npm run dev
 ```
 
-Tarayıcıda: **http://localhost:3000/dashboard**
+Tarayıcıda: **http://localhost:3000/dashboard** (giriş sayfasına yönlendirir)
+
+### Dashboard girişi
+
+| Ortam | Varsayılan (sadece yerel) |
+|-------|---------------------------|
+| Kullanıcı | `admin` |
+| Şifre | `admin123` |
+
+Üretimde `.env.example` dosyasındaki değişkenleri ayarlayın:
+
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD` (güçlü şifre)
+- `JWT_SECRET` (uzun rastgele metin)
+
+Netlify: **Site settings → Environment variables** bölümüne ekleyin.
 
 ## Netlify’da yayınlama
 
@@ -43,9 +58,10 @@ Kayıtlı siteler sağ panelde listelenir; siteyi açabilir veya silebilirsiniz.
 
 | Metot | Endpoint | Açıklama |
 |-------|----------|----------|
-| GET | `/api/sites` | Tüm siteler |
-| POST | `/api/sites` | Site oluştur / güncelle |
-| GET | `/site/:slug` | Özelleştirilmiş HTML site |
+| POST | `/api/auth/login` | Dashboard girişi |
+| GET | `/api/sites` | Tüm siteler (giriş gerekli) |
+| POST | `/api/sites` | Site oluştur / güncelle (giriş gerekli) |
+| GET | `/site/:slug` | Özelleştirilmiş HTML site (herkese açık) |
+| POST | `/api/sites/:slug/appointments` | Müşteri randevusu (herkese açık) |
 
-Veriler `backend/data/sites.json` dosyasında saklanır.
-# Appointment_System
+Veriler `backend/data/` ve Netlify Blobs’ta saklanır.

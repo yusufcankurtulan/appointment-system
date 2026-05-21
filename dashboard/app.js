@@ -1,5 +1,12 @@
 const API = "";
 
+if (!DashboardAuth.requireAuth()) {
+  throw new Error("redirect");
+}
+
+document.getElementById("user-label").textContent = DashboardAuth.getUser() || "";
+document.getElementById("logout-btn").addEventListener("click", () => DashboardAuth.logout());
+
 const form = document.getElementById("site-form");
 const messageEl = document.getElementById("message");
 const sitesList = document.getElementById("sites-list");
@@ -109,9 +116,8 @@ async function loadCategories() {
 }
 
 async function apiPost() {
-  const res = await fetch(`${API}/api/sites`, {
+  const res = await DashboardAuth.authFetch(`${API}/api/sites`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(getFormData()),
   });
   const { data, ok } = await parseResponse(res);
@@ -129,7 +135,7 @@ async function loadAppointments(slug, companyName) {
   appointmentsList.innerHTML = "<li>Yükleniyor...</li>";
 
   try {
-    const res = await fetch(`${API}/api/sites/${encodeURIComponent(slug)}/appointments`);
+    const res = await DashboardAuth.authFetch(`${API}/api/sites/${encodeURIComponent(slug)}/appointments`);
     const { data, ok } = await parseResponse(res);
     if (!ok) {
       appointmentsList.innerHTML = "<li>Randevular yüklenemedi.</li>";
@@ -156,7 +162,7 @@ async function loadAppointments(slug, companyName) {
 
 async function loadSites() {
   try {
-    const res = await fetch(`${API}/api/sites`);
+    const res = await DashboardAuth.authFetch(`${API}/api/sites`);
     const { data: sites, ok } = await parseResponse(res);
     if (!ok) {
       sitesList.innerHTML = `<li class="empty">Liste yüklenemedi.</li>`;
@@ -188,7 +194,9 @@ async function loadSites() {
       btn.addEventListener("click", async () => {
         const slug = btn.dataset.slug;
         if (!confirm(`"${slug}" sitesini silmek istediğinize emin misiniz?`)) return;
-        const delRes = await fetch(`${API}/api/sites/${encodeURIComponent(slug)}`, { method: "DELETE" });
+        const delRes = await DashboardAuth.authFetch(`${API}/api/sites/${encodeURIComponent(slug)}`, {
+          method: "DELETE",
+        });
         const { ok: delOk } = await parseResponse(delRes);
         if (!delOk) showMessage("Silme başarısız.", "error");
         else {
