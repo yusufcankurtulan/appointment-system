@@ -17,7 +17,14 @@ const BLOB_REQUIRED_ENV = [
 ];
 
 function canUseBlobStore(): boolean {
-  return BLOB_REQUIRED_ENV.some((name) => Boolean(process.env[name]));
+  return Boolean(
+    process.env.NETLIFY_SITE_ID &&
+    (
+      process.env.NETLIFY_AUTH_TOKEN ||
+      process.env.NETLIFY_TOKEN ||
+      process.env.NETLIFY_ACCESS_TOKEN
+    )
+  );
 }
 
 function readFromFile(path: string): SiteProfile[] {
