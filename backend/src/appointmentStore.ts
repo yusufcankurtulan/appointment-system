@@ -15,7 +15,11 @@ const BLOB_REQUIRED_ENV = [
 ];
 
 function canUseBlobStore(): boolean {
-  return Boolean(process.env.NETLIFY && (process.env.SITE_ID || process.env.NETLIFY_SITE_ID));
+  return Boolean(
+    process.env.NETLIFY &&
+    (process.env.SITE_ID || process.env.NETLIFY_SITE_ID) &&
+    (process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_TOKEN || process.env.NETLIFY_ACCESS_TOKEN)
+  );
 }
 
 function blobStoreEnvInfo(): string {
