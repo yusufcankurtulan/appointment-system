@@ -18,13 +18,22 @@ const BLOB_REQUIRED_ENV = [
 
 function canUseBlobStore(): boolean {
   return Boolean(
-    process.env.NETLIFY_SITE_ID &&
-    (
+    process.env.NETLIFY &&
+    (process.env.SITE_ID || process.env.NETLIFY_SITE_ID)
+  );
+}
+
+async function getBlobStore(name: string) {
+  const { getStore } = await import("@netlify/blobs");
+  return getStore({
+    name,
+    consistency: "strong",
+    siteID: process.env.SITE_ID || process.env.NETLIFY_SITE_ID,
+    token:
       process.env.NETLIFY_AUTH_TOKEN ||
       process.env.NETLIFY_TOKEN ||
-      process.env.NETLIFY_ACCESS_TOKEN
-    )
-  );
+      process.env.NETLIFY_ACCESS_TOKEN,
+  });
 }
 
 function readFromFile(path: string): SiteProfile[] {
@@ -44,23 +53,27 @@ function writeToFile(path: string, sites: SiteProfile[]): void {
 }
 
 async function readFromBlobs(): Promise<SiteProfile[]> {
-  const { getStore } = await import("@netlify/blobs");
-  const store = getStore({ name: "appointment-sites", consistency: "strong" });
+  const store = await getBlobStore("appointment-sites");
   const raw = await store.get(BLOB_KEY);
   if (!raw) return [];
   return JSON.parse(raw) as SiteProfile[];
 }
 
 async function writeToBlobs(sites: SiteProfile[]): Promise<void> {
-  const { getStore } = await import("@netlify/blobs");
-  const store = getStore({ name: "appointment-sites", consistency: "strong" });
+  const store = await getBlobStore("appointment-sites");
   await store.set(BLOB_KEY, JSON.stringify(sites));
 }
 
 async function readAll(): Promise<SiteProfile[]> {
   if (isLambda) {
     if (!canUseBlobStore()) {
-      return readFromFile(TMP_DATA_FILE);
+      try {
+        const dataFile = getLocalDataFile();
+        if (!existsSync(dataFile)) writeToFile(dataFile, []);
+        return readFromFile(dataFile);
+      } catch {
+        return readFromFile(TMP_DATA_FILE);
+      }
     }
     try {
       return await readFromBlobs();
@@ -76,8 +89,13 @@ async function readAll(): Promise<SiteProfile[]> {
 async function writeAll(sites: SiteProfile[]): Promise<void> {
   if (isLambda) {
     if (!canUseBlobStore()) {
-      writeToFile(TMP_DATA_FILE, sites);
-      return;
+      try {
+        writeToFile(getLocalDataFile(), sites);
+        return;
+      } catch {
+        writeToFile(TMP_DATA_FILE, sites);
+        return;
+      }
     }
     try {
       await writeToBlobs(sites);

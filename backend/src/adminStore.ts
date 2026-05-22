@@ -28,7 +28,10 @@ const BLOB_REQUIRED_ENV = [
 ];
 
 function canUseBlobStore(): boolean {
-  return BLOB_REQUIRED_ENV.some((name) => Boolean(process.env[name]));
+  return Boolean(
+    process.env.NETLIFY &&
+    (process.env.SITE_ID || process.env.NETLIFY_SITE_ID)
+  );
 }
 
 function getLocalFile(): string {
@@ -69,7 +72,15 @@ function defaultFromEnv(): AdminSettings {
 
 async function readFromBlobs(): Promise<AdminSettings | null> {
   const { getStore } = await import("@netlify/blobs");
-  const store = getStore({ name: "appointment-admin", consistency: "strong" });
+  const store = getStore({
+    name: "appointment-admin",
+    consistency: "strong",
+    siteID: process.env.SITE_ID || process.env.NETLIFY_SITE_ID,
+    token:
+      process.env.NETLIFY_AUTH_TOKEN ||
+      process.env.NETLIFY_TOKEN ||
+      process.env.NETLIFY_ACCESS_TOKEN,
+  });
   const raw = await store.get(BLOB_KEY);
   if (!raw) return null;
   return JSON.parse(raw) as AdminSettings;
@@ -77,7 +88,15 @@ async function readFromBlobs(): Promise<AdminSettings | null> {
 
 async function writeToBlobs(settings: AdminSettings): Promise<void> {
   const { getStore } = await import("@netlify/blobs");
-  const store = getStore({ name: "appointment-admin", consistency: "strong" });
+  const store = getStore({
+    name: "appointment-admin",
+    consistency: "strong",
+    siteID: process.env.SITE_ID || process.env.NETLIFY_SITE_ID,
+    token:
+      process.env.NETLIFY_AUTH_TOKEN ||
+      process.env.NETLIFY_TOKEN ||
+      process.env.NETLIFY_ACCESS_TOKEN,
+  });
   await store.set(BLOB_KEY, JSON.stringify(settings));
 }
 
@@ -101,7 +120,12 @@ export async function getAdminSettings(): Promise<AdminSettings> {
 
   if (isLambda) {
     if (!canUseBlobStore()) {
-      settings = readFromFile(TMP_FILE);
+      try {
+        const file = getLocalFile();
+        settings = readFromFile(file);
+      } catch {
+        settings = readFromFile(TMP_FILE);
+      }
     } else {
       try {
         settings = await readFromBlobs();
@@ -125,8 +149,13 @@ export async function saveAdminSettings(settings: AdminSettings): Promise<void> 
   settings.updatedAt = new Date().toISOString();
   if (isLambda) {
     if (!canUseBlobStore()) {
-      writeToFile(TMP_FILE, settings);
-      return;
+      try {
+        writeToFile(getLocalFile(), settings);
+        return;
+      } catch {
+        writeToFile(TMP_FILE, settings);
+        return;
+      }
     }
     try {
       await writeToBlobs(settings);

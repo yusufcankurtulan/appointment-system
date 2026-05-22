@@ -15,7 +15,20 @@ const BLOB_REQUIRED_ENV = [
 ];
 
 function canUseBlobStore(): boolean {
-  return BLOB_REQUIRED_ENV.some((name) => Boolean(process.env[name]));
+  return Boolean(process.env.NETLIFY && (process.env.SITE_ID || process.env.NETLIFY_SITE_ID));
+}
+
+async function getBlobStore(name: string) {
+  const { getStore } = await import("@netlify/blobs");
+  return getStore({
+    name,
+    consistency: "strong",
+    siteID: process.env.SITE_ID || process.env.NETLIFY_SITE_ID,
+    token:
+      process.env.NETLIFY_AUTH_TOKEN ||
+      process.env.NETLIFY_TOKEN ||
+      process.env.NETLIFY_ACCESS_TOKEN,
+  });
 }
 
 function getLocalAppointmentsFile(): string {
@@ -40,23 +53,27 @@ function writeToFile(path: string, items: Appointment[]): void {
 }
 
 async function readFromBlobs(): Promise<Appointment[]> {
-  const { getStore } = await import("@netlify/blobs");
-  const store = getStore({ name: "appointment-bookings", consistency: "strong" });
+  const store = await getBlobStore("appointment-bookings");
   const raw = await store.get(BLOB_KEY);
   if (!raw) return [];
   return JSON.parse(raw) as Appointment[];
 }
 
 async function writeToBlobs(items: Appointment[]): Promise<void> {
-  const { getStore } = await import("@netlify/blobs");
-  const store = getStore({ name: "appointment-bookings", consistency: "strong" });
+  const store = await getBlobStore("appointment-bookings");
   await store.set(BLOB_KEY, JSON.stringify(items));
 }
 
 async function readAll(): Promise<Appointment[]> {
   if (isLambda) {
     if (!canUseBlobStore()) {
-      return readFromFile(TMP_FILE);
+      try {
+        const file = getLocalAppointmentsFile();
+        if (!existsSync(file)) writeToFile(file, []);
+        return readFromFile(file);
+      } catch {
+        return readFromFile(TMP_FILE);
+      }
     }
     try {
       return await readFromBlobs();
@@ -72,8 +89,13 @@ async function readAll(): Promise<Appointment[]> {
 async function writeAll(items: Appointment[]): Promise<void> {
   if (isLambda) {
     if (!canUseBlobStore()) {
-      writeToFile(TMP_FILE, items);
-      return;
+      try {
+        writeToFile(getLocalAppointmentsFile(), items);
+        return;
+      } catch {
+        writeToFile(TMP_FILE, items);
+        return;
+      }
     }
     try {
       await writeToBlobs(items);
