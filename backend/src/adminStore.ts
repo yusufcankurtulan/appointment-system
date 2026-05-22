@@ -34,6 +34,10 @@ function canUseBlobStore(): boolean {
   );
 }
 
+function blobStoreEnvInfo(): string {
+  return `NETLIFY=${Boolean(process.env.NETLIFY)}, SITE_ID=${Boolean(process.env.SITE_ID)}, NETLIFY_SITE_ID=${Boolean(process.env.NETLIFY_SITE_ID)}, TOKEN=${Boolean(process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_TOKEN || process.env.NETLIFY_ACCESS_TOKEN)}`;
+}
+
 function getLocalFile(): string {
   return join(getProjectRoot(), "backend", "data", "admin.json");
 }
@@ -72,6 +76,7 @@ function defaultFromEnv(): AdminSettings {
 
 async function readFromBlobs(): Promise<AdminSettings | null> {
   const { getStore } = await import("@netlify/blobs");
+  console.log(`[ADMIN] Initializing blob store 'appointment-admin' with ${blobStoreEnvInfo()}`);
   const store = getStore({
     name: "appointment-admin",
     consistency: "strong",
@@ -88,6 +93,7 @@ async function readFromBlobs(): Promise<AdminSettings | null> {
 
 async function writeToBlobs(settings: AdminSettings): Promise<void> {
   const { getStore } = await import("@netlify/blobs");
+  console.log(`[ADMIN] Initializing blob store 'appointment-admin' with ${blobStoreEnvInfo()}`);
   const store = getStore({
     name: "appointment-admin",
     consistency: "strong",
@@ -119,17 +125,22 @@ export async function getAdminSettings(): Promise<AdminSettings> {
   let settings: AdminSettings | null = null;
 
   if (isLambda) {
+    console.log(`[ADMIN] getAdminSettings running in Lambda. blobEnabled=${canUseBlobStore()}`);
     if (!canUseBlobStore()) {
       try {
         const file = getLocalFile();
+        console.log(`[ADMIN] Blob unavailable, reading admin settings from local file ${file}`);
         settings = readFromFile(file);
       } catch {
+        console.error("[ADMIN] Local admin settings read failed, falling back to /tmp");
         settings = readFromFile(TMP_FILE);
       }
     } else {
       try {
+        console.log("[ADMIN] Blob available, reading admin settings from Netlify blobs");
         settings = await readFromBlobs();
       } catch {
+        console.error("[ADMIN] Blob admin settings read failed, falling back to /tmp");
         settings = readFromFile(TMP_FILE);
       }
     }
@@ -148,20 +159,25 @@ export async function getAdminSettings(): Promise<AdminSettings> {
 export async function saveAdminSettings(settings: AdminSettings): Promise<void> {
   settings.updatedAt = new Date().toISOString();
   if (isLambda) {
+    console.log(`[ADMIN] saveAdminSettings running in Lambda. blobEnabled=${canUseBlobStore()}`);
     if (!canUseBlobStore()) {
       try {
+        console.log("[ADMIN] Blob unavailable, writing admin settings to local file");
         writeToFile(getLocalFile(), settings);
         return;
       } catch {
+        console.error("[ADMIN] Local admin settings write failed, falling back to /tmp");
         writeToFile(TMP_FILE, settings);
         return;
       }
     }
     try {
+      console.log("[ADMIN] Blob available, writing admin settings to Netlify blobs");
       await writeToBlobs(settings);
       writeToFile(TMP_FILE, settings);
       return;
     } catch {
+      console.error("[ADMIN] Blob admin settings write failed, falling back to /tmp");
       writeToFile(TMP_FILE, settings);
       return;
     }

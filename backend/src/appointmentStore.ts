@@ -18,8 +18,13 @@ function canUseBlobStore(): boolean {
   return Boolean(process.env.NETLIFY && (process.env.SITE_ID || process.env.NETLIFY_SITE_ID));
 }
 
+function blobStoreEnvInfo(): string {
+  return `NETLIFY=${Boolean(process.env.NETLIFY)}, SITE_ID=${Boolean(process.env.SITE_ID)}, NETLIFY_SITE_ID=${Boolean(process.env.NETLIFY_SITE_ID)}, TOKEN=${Boolean(process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_TOKEN || process.env.NETLIFY_ACCESS_TOKEN)}`;
+}
+
 async function getBlobStore(name: string) {
   const { getStore } = await import("@netlify/blobs");
+  console.log(`[APPT] Initializing blob store '${name}' with ${blobStoreEnvInfo()}`);
   return getStore({
     name,
     consistency: "strong",
@@ -41,6 +46,7 @@ function readFromFile(path: string): Appointment[] {
   try {
     return JSON.parse(readFileSync(path, "utf-8")) as Appointment[];
   } catch {
+    console.error("[APPT] Failed to parse local appointments file", path);
     return [];
   }
 }
@@ -66,18 +72,24 @@ async function writeToBlobs(items: Appointment[]): Promise<void> {
 
 async function readAll(): Promise<Appointment[]> {
   if (isLambda) {
+    const blobEnabled = canUseBlobStore();
+    console.log(`[APPT] readAll running in Lambda. blobEnabled=${blobEnabled}`);
     if (!canUseBlobStore()) {
       try {
         const file = getLocalAppointmentsFile();
+        console.log(`[APPT] Blob unavailable, reading local appointments file ${file}`);
         if (!existsSync(file)) writeToFile(file, []);
         return readFromFile(file);
       } catch {
+        console.error("[APPT] Local appointments file read failed, falling back to /tmp");
         return readFromFile(TMP_FILE);
       }
     }
     try {
+      console.log("[APPT] Blob available, reading appointments from Netlify blobs");
       return await readFromBlobs();
     } catch {
+      console.error("[APPT] Blob appointments read failed");
       return readFromFile(TMP_FILE);
     }
   }
@@ -88,20 +100,26 @@ async function readAll(): Promise<Appointment[]> {
 
 async function writeAll(items: Appointment[]): Promise<void> {
   if (isLambda) {
+    const blobEnabled = canUseBlobStore();
+    console.log(`[APPT] writeAll running in Lambda. blobEnabled=${blobEnabled}`);
     if (!canUseBlobStore()) {
       try {
+        console.log("[APPT] Blob unavailable, writing local appointments file");
         writeToFile(getLocalAppointmentsFile(), items);
         return;
       } catch {
+        console.error("[APPT] Local appointments file write failed, falling back to /tmp");
         writeToFile(TMP_FILE, items);
         return;
       }
     }
     try {
+      console.log("[APPT] Blob available, writing appointments to Netlify blobs");
       await writeToBlobs(items);
       writeToFile(TMP_FILE, items);
       return;
     } catch {
+      console.error("[APPT] Blob appointments write failed");
       writeToFile(TMP_FILE, items);
       return;
     }

@@ -8,14 +8,6 @@ import { deleteAppointmentsForSite } from "./appointmentStore.js";
 const TMP_DATA_FILE = "/tmp/appointment-sites.json";
 const BLOB_KEY = "sites";
 
-const BLOB_REQUIRED_ENV = [
-  "NETLIFY",
-  "NETLIFY_SITE_ID",
-  "NETLIFY_AUTH_TOKEN",
-  "NETLIFY_TOKEN",
-  "NETLIFY_ACCESS_TOKEN",
-];
-
 function canUseBlobStore(): boolean {
   return Boolean(
     process.env.NETLIFY &&
@@ -23,8 +15,13 @@ function canUseBlobStore(): boolean {
   );
 }
 
+function blobStoreEnvInfo(): string {
+  return `NETLIFY=${Boolean(process.env.NETLIFY)}, SITE_ID=${Boolean(process.env.SITE_ID)}, NETLIFY_SITE_ID=${Boolean(process.env.NETLIFY_SITE_ID)}, TOKEN=${Boolean(process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_TOKEN || process.env.NETLIFY_ACCESS_TOKEN)}`;
+}
+
 async function getBlobStore(name: string) {
   const { getStore } = await import("@netlify/blobs");
+  console.log(`[STORE] Initializing blob store '${name}' with ${blobStoreEnvInfo()}`);
   return getStore({
     name,
     consistency: "strong",
@@ -40,7 +37,8 @@ function readFromFile(path: string): SiteProfile[] {
   if (!path || !existsSync(path)) return [];
   try {
     return JSON.parse(readFileSync(path, "utf-8")) as SiteProfile[];
-  } catch {
+  } catch (err) {
+    console.error("[STORE] Failed to parse local file", path, err);
     return [];
   }
 }
@@ -66,18 +64,24 @@ async function writeToBlobs(sites: SiteProfile[]): Promise<void> {
 
 async function readAll(): Promise<SiteProfile[]> {
   if (isLambda) {
-    if (!canUseBlobStore()) {
+    const blobEnabled = canUseBlobStore();
+    console.log(`[STORE] readAll running in Lambda. blobEnabled=${blobEnabled}`);
+    if (!blobEnabled) {
       try {
         const dataFile = getLocalDataFile();
+        console.log(`[STORE] Blob unavailable, reading local data file ${dataFile}`);
         if (!existsSync(dataFile)) writeToFile(dataFile, []);
         return readFromFile(dataFile);
-      } catch {
+      } catch (err) {
+        console.error("[STORE] Local file read failed, falling back to /tmp", err);
         return readFromFile(TMP_DATA_FILE);
       }
     }
     try {
+      console.log("[STORE] Blob available, reading from Netlify blobs");
       return await readFromBlobs();
-    } catch {
+    } catch (err) {
+      console.error("[STORE] Blob read failed", err);
       return readFromFile(TMP_DATA_FILE);
     }
   }
@@ -88,20 +92,26 @@ async function readAll(): Promise<SiteProfile[]> {
 
 async function writeAll(sites: SiteProfile[]): Promise<void> {
   if (isLambda) {
-    if (!canUseBlobStore()) {
+    const blobEnabled = canUseBlobStore();
+    console.log(`[STORE] writeAll running in Lambda. blobEnabled=${blobEnabled}`);
+    if (!blobEnabled) {
       try {
+        console.log("[STORE] Blob unavailable, writing local data file");
         writeToFile(getLocalDataFile(), sites);
         return;
-      } catch {
+      } catch (err) {
+        console.error("[STORE] Local file write failed, falling back to /tmp", err);
         writeToFile(TMP_DATA_FILE, sites);
         return;
       }
     }
     try {
+      console.log("[STORE] Blob available, writing to Netlify blobs");
       await writeToBlobs(sites);
       writeToFile(TMP_DATA_FILE, sites);
       return;
-    } catch {
+    } catch (err) {
+      console.error("[STORE] Blob write failed", err);
       writeToFile(TMP_DATA_FILE, sites);
       return;
     }
