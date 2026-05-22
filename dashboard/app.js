@@ -97,6 +97,8 @@ function getFormData() {
     about: form.about.value,
     phone: form.phone.value,
     email: form.email.value,
+    ownerName: form.ownerName?.value || "",
+    ownerEmail: form.ownerEmail?.value || "",
     address: form.address.value,
     workingHours: form.workingHours.value,
     workStart: form.workStart.value,
@@ -205,7 +207,7 @@ async function loadSites() {
         (site) => `
     <li class="site-item">
       <strong>${escapeHtml(site.companyName)}</strong>
-      <span class="site-meta">${escapeHtml(CATEGORY_LABELS[site.category] || site.category || "Diğer")} · /site/${escapeHtml(site.slug)}</span>
+      <span class="site-meta">${escapeHtml(CATEGORY_LABELS[site.category] || site.category || "Diğer")} · /site/${escapeHtml(site.slug)}${site.ownerEmail ? ` · Sahip: ${escapeHtml(site.ownerEmail)}` : ""}</span>
       <div class="site-links">
         <a href="/site/${encodeURIComponent(site.slug)}" target="_blank">Siteyi aç</a>
         <button type="button" class="btn btn-small" data-view-appt="${escapeHtml(site.slug)}" data-name="${escapeHtml(site.companyName)}">Randevular</button>
@@ -252,8 +254,9 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
     const data = await apiPost();
+    const ownerUrl = data.ownerDashboardUrl ? ` | Owner dashboard: ${window.location.origin}${data.ownerDashboardUrl}` : "";
     showMessage(
-      `Site oluşturuldu! ${window.location.origin}/site/${data.profile.slug}`,
+      `Site oluşturuldu! ${window.location.origin}/site/${data.profile.slug}${ownerUrl}`,
       "success"
     );
     form.slug.value = data.profile.slug;

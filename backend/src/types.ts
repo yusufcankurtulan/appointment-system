@@ -15,6 +15,9 @@ export interface SiteProfile {
   services: string;
   primaryColor: string;
   logoUrl: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerToken?: string;
   createdAt: string;
   updatedAt: string;
 }
