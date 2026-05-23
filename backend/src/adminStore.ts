@@ -129,7 +129,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     console.log(`[ADMIN] getAdminSettings running in Lambda. blobEnabled=${canUseBlobStore()}`);
     if (!canUseBlobStore()) {
       try {
-        const file = getLocalFile();
+        const file = TMP_FILE;
         console.log(`[ADMIN] Blob unavailable, reading admin settings from local file ${file}`);
         settings = readFromFile(file);
       } catch {
@@ -164,7 +164,7 @@ export async function saveAdminSettings(settings: AdminSettings): Promise<void> 
     if (!canUseBlobStore()) {
       try {
         console.log("[ADMIN] Blob unavailable, writing admin settings to local file");
-        writeToFile(getLocalFile(), settings);
+        writeToFile(TMP_FILE, settings);
         return;
       } catch {
         console.error("[ADMIN] Local admin settings write failed, falling back to /tmp");

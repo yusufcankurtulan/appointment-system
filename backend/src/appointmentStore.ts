@@ -41,6 +41,9 @@ async function getBlobStore(name: string) {
 }
 
 function getLocalAppointmentsFile(): string {
+  if (isLambda) {
+    return TMP_FILE;
+  }
   const root = getProjectRoot();
   return join(root, "backend", "data", "appointments.json");
 }

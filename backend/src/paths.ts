@@ -13,6 +13,9 @@ export function getProjectRoot(): string {
 }
 
 export function getLocalDataFile(): string {
+  if (isLambda) {
+    return join("/tmp", "sites.json");
+  }
   const root = getProjectRoot();
   const candidates = [
     join(root, "backend", "data", "sites.json"),
