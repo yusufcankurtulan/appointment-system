@@ -69,7 +69,7 @@ async function readAll(): Promise<SiteProfile[]> {
     console.log(`[STORE] readAll running in Lambda. blobEnabled=${blobEnabled}`);
     if (!blobEnabled) {
       try {
-        const dataFile = getLocalDataFile();
+        const dataFile = TMP_DATA_FILE;
         console.log(`[STORE] Blob unavailable, reading local data file ${dataFile}`);
         if (!existsSync(dataFile)) writeToFile(dataFile, []);
         return readFromFile(dataFile);
@@ -98,7 +98,7 @@ async function writeAll(sites: SiteProfile[]): Promise<void> {
     if (!blobEnabled) {
       try {
         console.log("[STORE] Blob unavailable, writing local data file");
-        writeToFile(getLocalDataFile(), sites);
+        writeToFile(TMP_DATA_FILE, sites);
         return;
       } catch (err) {
         console.error("[STORE] Local file write failed, falling back to /tmp", err);
