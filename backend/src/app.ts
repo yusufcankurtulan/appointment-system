@@ -253,21 +253,23 @@ export function createApp(): express.Application {
       list.innerHTML = "";
       showStatus("Yükleniyor...");
       try {
-        const res = await fetch(`/api/owner/${encodeURIComponent(slug)}/appointments?token=${encodeURIComponent(token)}`);
+        const res = await fetch('/api/owner/' + encodeURIComponent(slug) + '/appointments?token=' + encodeURIComponent(token));
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Randevular yüklenemedi.");
         if (!data.length) {
           showStatus("Henüz randevu yok.");
           return;
         }
-        showStatus(`${data.length} randevu bulundu.`);
-        list.innerHTML = data.map((a) => `\
-          <li>\
-            <strong>${a.date} ${a.time}</strong>\
-            <div class="appointment-meta">${a.customerName} — ${a.customerPhone} ${a.customerEmail ? `| ${a.customerEmail}` : ""}</div>\
-            ${a.note ? `<div class="appointment-meta">Not: ${a.note}</div>` : ""}\
-          </li>\
-        `).join("");
+        showStatus(data.length + " randevu bulundu.");
+        list.innerHTML = data
+          .map((a) =>
+            '<li>' +
+            '<strong>' + a.date + ' ' + a.time + '</strong>' +
+            '<div class="appointment-meta">' + a.customerName + ' — ' + a.customerPhone + (a.customerEmail ? ' | ' + a.customerEmail : '') + '</div>' +
+            (a.note ? '<div class="appointment-meta">Not: ' + a.note + '</div>' : '') +
+            '</li>'
+          )
+          .join("");
       } catch (err) {
         showStatus(err.message, true);
       }
