@@ -107,9 +107,24 @@ async function getFormData() {
     slotDuration: Number(form.slotDuration.value),
     services: form.services.value,
     primaryColor: form.primaryColor.value,
-    logoUrl: form.logoUrl.value,
+    logoUrl: await readLogoFile() || form.logoUrl.value,
     photoUrls: await readPhotoFiles(),
   };
+}
+
+async function readLogoFile() {
+  const input = document.getElementById("logoFile");
+  if (!(input instanceof HTMLInputElement) || !input.files || input.files.length === 0) return "";
+  const file = input.files[0];
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Logo okunamadı."));
+    };
+    reader.onerror = () => reject(new Error("Logo okunamadı."));
+    reader.readAsDataURL(file);
+  });
 }
 
 function makeSlug(value) {
