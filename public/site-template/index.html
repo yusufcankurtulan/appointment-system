@@ -12,7 +12,7 @@
     }
   </style>
 </head>
-<body>
+<body data-site-slug="{{siteSlug}}">
   <header class="site-header">
     <div class="container header-inner">
       <div class="brand">
@@ -20,9 +20,10 @@
         <div>
           <h1>{{companyName}}</h1>
           <p class="tagline">{{tagline}}</p>
+          <span class="category-badge">{{categoryLabel}}</span>
         </div>
       </div>
-      <a href="tel:{{phone}}" class="btn-cta">Randevu Al</a>
+      <a href="#randevu" class="btn-cta">Randevu Al</a>
     </div>
   </header>
 
@@ -30,7 +31,6 @@
     <div class="container">
       <h2>Hoş geldiniz</h2>
       <p>{{about}}</p>
-      <a href="tel:{{phone}}" class="btn-cta btn-large">Hemen Ara: {{phone}}</a>
     </div>
   </section>
 
@@ -53,13 +53,44 @@
   </section>
 
   <section class="section section-alt" id="randevu">
-    <div class="container contact-box">
-      <h3>Randevu için bize ulaşın</h3>
-      <p>Telefon veya e-posta ile randevunuzu oluşturabilirsiniz.</p>
-      <div class="contact-actions">
-        <a href="tel:{{phone}}" class="btn-cta">Ara</a>
-        <a href="mailto:{{email}}?subject=Randevu%20Talebi" class="btn-cta btn-outline">E-posta Gönder</a>
+    <div class="container booking-box">
+      <h3>Online Randevu</h3>
+      <p class="booking-intro">Tarih seçin, müsait saati tıklayın ve randevunuzu oluşturun.</p>
+
+      <div class="booking-step">
+        <label for="appt-date">Tarih</label>
+        <input type="date" id="appt-date" class="booking-input">
       </div>
+
+      <div class="booking-step">
+        <label>Müsait saatler</label>
+        <div id="slots-grid" class="slots-grid">
+          <p class="slots-hint">Önce bir tarih seçin.</p>
+        </div>
+      </div>
+
+      <form id="booking-form" class="booking-form" hidden>
+        <p class="selected-slot">Seçilen: <strong id="selected-slot-label">—</strong></p>
+        <div class="form-row">
+          <label for="customerName">Ad Soyad *</label>
+          <input type="text" id="customerName" required placeholder="Adınız Soyadınız">
+        </div>
+        <div class="form-row">
+          <label for="customerPhone">Telefon *</label>
+          <input type="tel" id="customerPhone" required placeholder="05XX XXX XX XX">
+        </div>
+        <div class="form-row">
+          <label for="customerEmail">E-posta</label>
+          <input type="email" id="customerEmail" placeholder="ornek@email.com">
+        </div>
+        <div class="form-row">
+          <label for="customerNote">Not</label>
+          <textarea id="customerNote" rows="2" placeholder="Eklemek istediğiniz not..."></textarea>
+        </div>
+        <button type="submit" class="btn-cta btn-large">Randevuyu Oluştur</button>
+      </form>
+
+      <p id="booking-message" class="booking-message" hidden></p>
     </div>
   </section>
 
@@ -68,5 +99,7 @@
       <p>&copy; {{year}} {{companyName}}. Tüm hakları saklıdır.</p>
     </div>
   </footer>
+
+  <script src="/site-template/booking.js"></script>
 </body>
 </html>

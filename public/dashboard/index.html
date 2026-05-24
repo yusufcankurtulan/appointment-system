@@ -7,18 +7,36 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="header">
-    <h1>Randevu Sitesi Oluşturucu</h1>
-    <p>Firma bilgilerinizi girin; özelleştirilmiş web siteniz hazır olsun.</p>
+  <header class="header header-row">
+    <div>
+      <h1 id="dashboard-title">Randevu Sitesi Oluşturucu</h1>
+      <p id="dashboard-subtitle">Firma bilgilerinizi girin; müşterileriniz online randevu alsın.</p>
+    </div>
+    <div class="header-actions">
+      <span id="user-label" class="user-label"></span>
+      <button type="button" id="logout-btn" class="btn btn-secondary">Çıkış</button>
+    </div>
   </header>
 
-  <main class="layout">
+  <nav class="tabs" role="tablist">
+    <button type="button" class="tab active" data-tab="sites" role="tab">Siteler</button>
+    <button type="button" class="tab" data-tab="settings" role="tab">Ayarlar</button>
+  </nav>
+
+  <main id="tab-sites" class="tab-panel active layout">
     <section class="panel form-panel">
       <h2>Firma Bilgileri</h2>
       <form id="site-form">
         <div class="field">
           <label for="companyName">Firma adı *</label>
           <input type="text" id="companyName" name="companyName" required placeholder="Örn: Güzellik Salonu Ayşe">
+        </div>
+
+        <div class="field">
+          <label for="category">İş kolu / Kategori *</label>
+          <select id="category" name="category" required>
+            <option value="">Seçiniz...</option>
+          </select>
         </div>
 
         <div class="field">
@@ -51,19 +69,64 @@
           </div>
         </div>
 
+        <div class="grid-2">
+          <div class="field">
+            <label for="ownerName">Site Sahibi Adı</label>
+            <input type="text" id="ownerName" name="ownerName" placeholder="Ayşe Yılmaz">
+          </div>
+          <div class="field">
+            <label for="ownerEmail">Site Sahibi E-posta</label>
+            <input type="email" id="ownerEmail" name="ownerEmail" placeholder="sahip@firma.com">
+          </div>
+        </div>
+
         <div class="field">
           <label for="address">Adres</label>
           <input type="text" id="address" name="address" placeholder="Mahalle, cadde, il">
         </div>
 
-        <div class="field">
-          <label for="workingHours">Çalışma saatleri</label>
-          <input type="text" id="workingHours" name="workingHours" value="Pazartesi – Cuma: 09:00 – 18:00">
-        </div>
+        <fieldset class="schedule-fieldset">
+          <legend>Randevu takvimi ayarları</legend>
+          <div class="grid-3">
+            <div class="field">
+              <label for="workStart">Başlangıç</label>
+              <input type="time" id="workStart" name="workStart" value="09:00">
+            </div>
+            <div class="field">
+              <label for="workEnd">Bitiş</label>
+              <input type="time" id="workEnd" name="workEnd" value="18:00">
+            </div>
+            <div class="field">
+              <label for="slotDuration">Slot süresi (dk)</label>
+              <select id="slotDuration" name="slotDuration">
+                <option value="15">15 dk</option>
+                <option value="30" selected>30 dk</option>
+                <option value="45">45 dk</option>
+                <option value="60">60 dk</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label-text">Çalışılan günler</span>
+            <div class="day-checks" id="work-days">
+              <label><input type="checkbox" value="1" checked> Pzt</label>
+              <label><input type="checkbox" value="2" checked> Sal</label>
+              <label><input type="checkbox" value="3" checked> Çar</label>
+              <label><input type="checkbox" value="4" checked> Per</label>
+              <label><input type="checkbox" value="5" checked> Cum</label>
+              <label><input type="checkbox" value="6"> Cmt</label>
+              <label><input type="checkbox" value="0"> Paz</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="workingHours">Görünen çalışma saatleri (sitede)</label>
+            <input type="text" id="workingHours" name="workingHours" value="Pazartesi – Cuma: 09:00 – 18:00">
+          </div>
+        </fieldset>
 
         <div class="field">
           <label for="services">Hizmetler</label>
-          <input type="text" id="services" name="services" placeholder="Saç kesimi, Manikür, Cilt bakımı (virgülle ayırın)">
+          <input type="text" id="services" name="services" placeholder="Saç kesimi, Manikür (virgülle ayırın)">
         </div>
 
         <div class="grid-2">
@@ -90,9 +153,102 @@
       <ul id="sites-list" class="sites-list">
         <li class="empty">Henüz site yok.</li>
       </ul>
+      <div id="appointments-panel" class="appointments-panel" hidden>
+        <h3 id="appt-panel-title">Randevular</h3>
+        <ul id="appointments-list" class="appointments-list"></ul>
+      </div>
     </section>
   </main>
 
+  <main id="tab-settings" class="tab-panel settings-layout" hidden>
+    <section class="panel settings-panel">
+      <h2>Hesap Ayarları</h2>
+      <p class="settings-hint">Değişiklik yapmak için mevcut şifrenizi girmeniz gerekir.</p>
+
+      <form id="settings-form">
+        <fieldset class="settings-group">
+          <legend>Profil</legend>
+          <div class="field">
+            <label for="set-displayName">Dashboard başlığı</label>
+            <input type="text" id="set-displayName" placeholder="Randevu Sitesi Oluşturucu">
+          </div>
+          <div class="field">
+            <label for="set-username">Kullanıcı adı</label>
+            <input type="text" id="set-username" required minlength="3" autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="set-email">İletişim e-postası</label>
+            <input type="email" id="set-email" placeholder="admin@firma.com">
+            <small>Bildirimler için (ileride kullanılacak).</small>
+          </div>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Güvenlik</legend>
+          <div class="field">
+            <label for="set-currentPassword">Mevcut şifre *</label>
+            <input type="password" id="set-currentPassword" required autocomplete="current-password">
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="set-newPassword">Yeni şifre</label>
+              <input type="password" id="set-newPassword" minlength="6" autocomplete="new-password" placeholder="Boş bırakın = değişmez">
+            </div>
+            <div class="field">
+              <label for="set-newPasswordConfirm">Yeni şifre (tekrar)</label>
+              <input type="password" id="set-newPasswordConfirm" minlength="6" autocomplete="new-password">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Yeni site varsayılanları</legend>
+          <p class="settings-hint">Yeni firma eklerken form bu değerlerle dolar.</p>
+          <div class="grid-3">
+            <div class="field">
+              <label for="set-defaultWorkStart">Başlangıç saati</label>
+              <input type="time" id="set-defaultWorkStart" value="09:00">
+            </div>
+            <div class="field">
+              <label for="set-defaultWorkEnd">Bitiş saati</label>
+              <input type="time" id="set-defaultWorkEnd" value="18:00">
+            </div>
+            <div class="field">
+              <label for="set-defaultSlotDuration">Slot süresi</label>
+              <select id="set-defaultSlotDuration">
+                <option value="15">15 dk</option>
+                <option value="30" selected>30 dk</option>
+                <option value="45">45 dk</option>
+                <option value="60">60 dk</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label-text">Varsayılan çalışma günleri</span>
+            <div class="day-checks" id="set-work-days">
+              <label><input type="checkbox" value="1" checked> Pzt</label>
+              <label><input type="checkbox" value="2" checked> Sal</label>
+              <label><input type="checkbox" value="3" checked> Çar</label>
+              <label><input type="checkbox" value="4" checked> Per</label>
+              <label><input type="checkbox" value="5" checked> Cum</label>
+              <label><input type="checkbox" value="6"> Cmt</label>
+              <label><input type="checkbox" value="0"> Paz</label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Ayarları Kaydet</button>
+        </div>
+      </form>
+      <p id="settings-message" class="message" hidden></p>
+      <p class="settings-meta">Son güncelleme: <span id="settings-updated">—</span></p>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script src="tabs.js"></script>
+  <script src="settings.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
