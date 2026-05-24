@@ -93,7 +93,7 @@ const asyncHandler =
 export function createApp(): express.Application {
   const app = express();
   app.use(cors());
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "15mb" }));
 
   if (!isLambda && !process.env.NETLIFY) {
     const root = getProjectRoot();

@@ -116,6 +116,9 @@ async function readLogoFile() {
   const input = document.getElementById("logoFile");
   if (!(input instanceof HTMLInputElement) || !input.files || input.files.length === 0) return "";
   const file = input.files[0];
+  if (file.size > 1024 * 1024 * 2) {
+    throw new Error("Logo dosyası en fazla 2MB olabilir.");
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -239,6 +242,11 @@ async function readPhotoFiles() {
   const input = document.getElementById("photoFiles");
   if (!(input instanceof HTMLInputElement) || !input.files) return [];
   const files = Array.from(input.files).slice(0, 5);
+  files.forEach((file) => {
+    if (file.size > 1024 * 1024 * 3) {
+      throw new Error("Her fotoğraf en fazla 3MB olabilir.");
+    }
+  });
   return Promise.all(
     files.map((file) =>
       new Promise((resolve, reject) => {
