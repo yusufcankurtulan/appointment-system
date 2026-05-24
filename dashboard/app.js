@@ -88,7 +88,7 @@ window.applySiteDefaults = function (s) {
   }
 };
 
-function getFormData() {
+async function getFormData() {
   return {
     companyName: form.companyName.value,
     category: form.category.value,
@@ -108,11 +108,135 @@ function getFormData() {
     services: form.services.value,
     primaryColor: form.primaryColor.value,
     logoUrl: form.logoUrl.value,
-    photoUrls: Array.from(document.querySelectorAll('input[name="photoUrl"]'))
-      .map((input) => input.value.trim())
-      .filter(Boolean)
-      .slice(0, 5),
+    photoUrls: await readPhotoFiles(),
   };
+}
+
+function makeSlug(value) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[ğĞüÜşŞıİöÖçÇ]/g, (ch) => {
+      const map = { ğ: "g", Ğ: "g", ü: "u", Ü: "u", ş: "s", Ş: "s", ı: "i", İ: "i", ö: "o", Ö: "o", ç: "c", Ç: "c" };
+      return map[ch] || "";
+    })
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+}
+
+function replaceTemplatePlaceholders(template, data) {
+  return template
+    .replace(/{{companyName}}/g, data.companyName)
+    .replace(/{{tagline}}/g, data.tagline)
+    .replace(/{{about}}/g, data.about)
+    .replace(/{{phone}}/g, data.phone)
+    .replace(/{{email}}/g, data.email)
+    .replace(/{{address}}/g, data.address)
+    .replace(/{{workingHours}}/g, data.workingHours)
+    .replace(/{{categoryLabel}}/g, data.categoryLabel)
+    .replace(/{{siteSlug}}/g, data.siteSlug)
+    .replace(/{{primaryColor}}/g, data.primaryColor)
+    .replace(/{{logoBlock}}/g, data.logoBlock)
+    .replace(/{{servicesList}}/g, data.servicesList)
+    .replace(/{{year}}/g, data.year)
+    .replace(/{{photoGallery}}/g, data.photoGallery);
+}
+
+function makeGalleryHtml(photoUrls) {
+  if (!photoUrls || !photoUrls.length) return "";
+  return `
+  <section class="gallery-section">
+    <div class="container">
+      <div class="gallery-header">
+        <p class="gallery-title">Galeri</p>
+        <p class="gallery-intro">İşletmenizin en iyi yanlarını gösteren öne çıkan fotoğraflar.</p>
+      </div>
+      <div class="gallery-grid">
+        ${photoUrls
+          .slice(0, 5)
+          .map(
+            (url) =>
+              `<div class="gallery-item"><img src="${escapeHtml(url)}" alt="Fotoğraf"></div>`
+          )
+          .join("")}
+      </div>
+    </div>
+  </section>
+  `;
+}
+
+async function buildPreviewHtml(siteData) {
+  const templateText = await fetch("/site-template/index.html").then((res) => res.text());
+  const services = siteData.services
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("\n          ");
+  const logoBlock = siteData.logoUrl
+    ? `<img src="${escapeHtml(siteData.logoUrl)}" alt="${escapeHtml(siteData.companyName)}" class="logo-img">`
+    : `<span class="logo-text">${escapeHtml(siteData.companyName.charAt(0) || "")} </span>`;
+  const data = {
+    companyName: escapeHtml(siteData.companyName),
+    tagline: escapeHtml(siteData.tagline),
+    about: escapeHtml(siteData.about),
+    phone: escapeHtml(siteData.phone),
+    email: escapeHtml(siteData.email),
+    address: escapeHtml(siteData.address),
+    workingHours: escapeHtml(siteData.workingHours),
+    categoryLabel: escapeHtml(CATEGORY_LABELS[siteData.category] || siteData.category || "Diğer"),
+    siteSlug: escapeHtml(siteData.siteSlug),
+    primaryColor: escapeHtml(siteData.primaryColor),
+    logoBlock,
+    servicesList: services || "<li>Randevu hizmeti</li>",
+    year: String(new Date().getFullYear()),
+    photoGallery: makeGalleryHtml(siteData.photoUrls),
+  };
+  return replaceTemplatePlaceholders(templateText, data);
+}
+
+async function previewSite() {
+  try {
+    const formData = await getFormData();
+    const slug = form.slug.value.trim() || makeSlug(form.companyName.value);
+    const siteData = {
+      ...formData,
+      siteSlug: slug || "preview",
+      categoryLabel: CATEGORY_LABELS[formData.category] || formData.category || "Diğer",
+    };
+    const previewHtml = await buildPreviewHtml(siteData);
+    const previewWindow = window.open("", "previewWindow");
+    if (!previewWindow) {
+      showMessage("Önizleme penceresi açılamadı. Lütfen pop-up engelleyiciyi kontrol edin.", "error");
+      return;
+    }
+    previewWindow.document.write(previewHtml);
+    previewWindow.document.close();
+  } catch (err) {
+    showMessage(err.message, "error");
+  }
+}
+
+async function readPhotoFiles() {
+  const input = document.getElementById("photoFiles");
+  if (!(input instanceof HTMLInputElement) || !input.files) return [];
+  const files = Array.from(input.files).slice(0, 5);
+  return Promise.all(
+    files.map((file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === "string") resolve(reader.result);
+          else reject(new Error("Dosya okunamadı."));
+        };
+        reader.onerror = () => reject(new Error("Dosya okunamadı."));
+        reader.readAsDataURL(file);
+      })
+    )
+  );
 }
 
 async function parseResponse(res) {
@@ -150,7 +274,8 @@ async function loadCategories() {
 async function apiPost() {
   const res = await DashboardAuth.authFetch(`${API}/api/sites`, {
     method: "POST",
-    body: JSON.stringify(getFormData()),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(await getFormData()),
   });
   const { data, ok } = await parseResponse(res);
   if (!ok) {
@@ -271,13 +396,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 previewBtn.addEventListener("click", async () => {
-  try {
-    const data = await apiPost();
-    window.open(`/site/${data.profile.slug}`, "_blank");
-    loadSites();
-  } catch (err) {
-    showMessage(err.message, "error");
-  }
+  previewSite();
 });
 
 loadCategories();
