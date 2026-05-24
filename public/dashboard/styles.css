@@ -354,6 +354,24 @@ body {
   margin-bottom: 1rem;
 }
 
+.photo-fieldset {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #f8fafc;
+}
+
+.photo-fieldset legend {
+  font-weight: 600;
+}
+
+.field-help {
+  color: #475569;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
 .schedule-fieldset legend {
   font-weight: 600;
   padding: 0 0.35rem;

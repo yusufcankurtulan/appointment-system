@@ -56,6 +56,12 @@ function buildProfile(body: Partial<SiteProfileInput>, slug: string, existing?: 
     slotDuration: Number(body.slotDuration) || 30,
     services: body.services?.trim() || "",
     primaryColor: body.primaryColor?.trim() || "#2563eb",
+    photoUrls: Array.isArray(body.photoUrls)
+      ? body.photoUrls
+          .map((url) => String(url || "").trim())
+          .filter(Boolean)
+          .slice(0, 5)
+      : [],
     ownerName: body.ownerName?.trim() || existing?.ownerName || "",
     ownerEmail: body.ownerEmail?.trim() || existing?.ownerEmail || "",
     ownerToken: existing?.ownerToken || body.ownerToken?.trim() || generateOwnerToken(),

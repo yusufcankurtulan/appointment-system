@@ -19,6 +19,9 @@ export function normalizeSite(raw: Partial<SiteProfile> & { slug: string }): Sit
     services: raw.services ?? "",
     primaryColor: raw.primaryColor?.trim() || "#2563eb",
     logoUrl: raw.logoUrl ?? "",
+    photoUrls: Array.isArray(raw.photoUrls)
+      ? raw.photoUrls.filter((url): url is string => typeof url === "string").slice(0, 5)
+      : [],
     ownerName: raw.ownerName ?? "",
     ownerEmail: raw.ownerEmail ?? "",
     ownerToken: raw.ownerToken ?? "",

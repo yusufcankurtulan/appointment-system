@@ -108,6 +108,10 @@ function getFormData() {
     services: form.services.value,
     primaryColor: form.primaryColor.value,
     logoUrl: form.logoUrl.value,
+    photoUrls: Array.from(document.querySelectorAll('input[name="photoUrl"]'))
+      .map((input) => input.value.trim())
+      .filter(Boolean)
+      .slice(0, 5),
   };
 }
 
@@ -207,7 +211,7 @@ async function loadSites() {
         (site) => `
     <li class="site-item">
       <strong>${escapeHtml(site.companyName)}</strong>
-      <span class="site-meta">${escapeHtml(CATEGORY_LABELS[site.category] || site.category || "Diğer")} · /site/${escapeHtml(site.slug)}${site.ownerEmail ? ` · Sahip: ${escapeHtml(site.ownerEmail)}` : ""}</span>
+      <span class="site-meta">${escapeHtml(CATEGORY_LABELS[site.category] || site.category || "Diğer")} · /site/${escapeHtml(site.slug)}${site.ownerEmail ? ` · Sahip: ${escapeHtml(site.ownerEmail)}` : ""}${site.photoUrls?.length ? ` · Fotoğraf: ${site.photoUrls.length}` : ""}</span>
       <div class="site-links">
         <a href="/site/${encodeURIComponent(site.slug)}" target="_blank">Siteyi aç</a>
         <button type="button" class="btn btn-small" data-view-appt="${escapeHtml(site.slug)}" data-name="${escapeHtml(site.companyName)}">Randevular</button>

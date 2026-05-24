@@ -23,6 +23,26 @@ function servicesHtml(services: string): string {
   return items.map((item) => `<li>${escapeHtml(item)}</li>`).join("\n          ");
 }
 
+function galleryHtml(photoUrls: string[]): string {
+  if (!photoUrls || !photoUrls.length) return "";
+  const items = photoUrls.slice(0, 5).map((url) =>
+    `<div class="gallery-item"><img src="${escapeHtml(url)}" alt="Fotoğraf"></div>`
+  );
+  return `
+  <section class="gallery-section">
+    <div class="container">
+      <div class="gallery-header">
+        <p class="gallery-title">Galeri</p>
+        <p class="gallery-intro">Müşterilerinizin işletmenizde neler bulacağını gösteren öne çıkan fotoğraflar.</p>
+      </div>
+      <div class="gallery-grid">
+        ${items.join("\n        ")}
+      </div>
+    </div>
+  </section>
+  `;
+}
+
 export function renderSite(profile: SiteProfile): string {
   let html = SITE_TEMPLATE_HTML;
 
@@ -43,6 +63,7 @@ export function renderSite(profile: SiteProfile): string {
     "{{primaryColor}}": escapeHtml(profile.primaryColor || "#2563eb"),
     "{{logoBlock}}": logoBlock,
     "{{servicesList}}": servicesHtml(profile.services),
+    "{{photoGallery}}": galleryHtml(profile.photoUrls),
     "{{year}}": String(new Date().getFullYear()),
   };
 
