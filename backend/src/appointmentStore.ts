@@ -51,7 +51,8 @@ function getLocalAppointmentsFile(): string {
 function readFromFile(path: string): Appointment[] {
   if (!path || !existsSync(path)) return [];
   try {
-    return JSON.parse(readFileSync(path, "utf-8")) as Appointment[];
+    const raw = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+    return Array.isArray(raw) ? raw.map(normalizeAppointment) : [];
   } catch {
     console.error("[APPT] Failed to parse local appointments file", path);
     return [];
@@ -69,7 +70,28 @@ async function readFromBlobs(): Promise<Appointment[]> {
   const store = await getBlobStore("appointment-bookings");
   const raw = await store.get(BLOB_KEY);
   if (!raw) return [];
-  return JSON.parse(raw) as Appointment[];
+  const parsed = JSON.parse(raw) as unknown;
+  return Array.isArray(parsed) ? parsed.map(normalizeAppointment) : [];
+}
+
+function normalizeAppointment(item: unknown): Appointment {
+  const data = typeof item === "object" && item !== null ? (item as Record<string, unknown>) : {};
+  return {
+    id: String(data.id || ""),
+    siteSlug: String(data.siteSlug || ""),
+    date: String(data.date || ""),
+    time: String(data.time || ""),
+    customerName: String(data.customerName || ""),
+    customerPhone: String(data.customerPhone || ""),
+    customerEmail: String(data.customerEmail || ""),
+    note: String(data.note || ""),
+    createdAt: String(data.createdAt || new Date().toISOString()),
+    status:
+      data.status === "approved" || data.status === "rejected" || data.status === "pending"
+        ? data.status
+        : "approved",
+    rejectionReason: typeof data.rejectionReason === "string" ? data.rejectionReason : undefined,
+  };
 }
 
 async function writeToBlobs(items: Appointment[]): Promise<void> {
@@ -141,11 +163,15 @@ export async function listAppointments(siteSlug?: string): Promise<Appointment[]
 }
 
 export async function createAppointment(
-  data: Omit<Appointment, "id" | "createdAt">
+  data: Omit<Appointment, "id" | "createdAt" | "status">
 ): Promise<Appointment> {
   const all = await readAll();
   const conflict = all.find(
-    (a) => a.siteSlug === data.siteSlug && a.date === data.date && a.time === data.time
+    (a) =>
+      a.siteSlug === data.siteSlug &&
+      a.date === data.date &&
+      a.time === data.time &&
+      a.status !== "rejected"
   );
   if (conflict) throw new Error("Bu saat dolu. Lütfen başka bir saat seçin.");
 
@@ -153,8 +179,24 @@ export async function createAppointment(
     ...data,
     id: `${data.siteSlug}-${data.date}-${data.time}-${Date.now()}`,
     createdAt: new Date().toISOString(),
+    status: "pending",
   };
   all.push(appointment);
+  await writeAll(all);
+  return appointment;
+}
+
+export async function updateAppointmentStatus(
+  siteSlug: string,
+  appointmentId: string,
+  status: "approved" | "rejected",
+  rejectionReason?: string
+): Promise<Appointment> {
+  const all = await readAll();
+  const appointment = all.find((a) => a.siteSlug === siteSlug && a.id === appointmentId);
+  if (!appointment) throw new Error("Randevu bulunamadı.");
+  appointment.status = status;
+  appointment.rejectionReason = status === "rejected" ? String(rejectionReason || "") : undefined;
   await writeAll(all);
   return appointment;
 }

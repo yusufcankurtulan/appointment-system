@@ -32,7 +32,9 @@ export function getAvailableSlots(
   if (end <= start || duration <= 0) return [];
 
   const bookedTimes = new Set(
-    booked.filter((a) => a.date === dateStr && a.siteSlug === site.slug).map((a) => a.time)
+    booked
+      .filter((a) => a.date === dateStr && a.siteSlug === site.slug && a.status !== "rejected")
+      .map((a) => a.time)
   );
 
   const now = new Date();

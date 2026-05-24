@@ -33,6 +33,8 @@ export interface Appointment {
   customerPhone: string;
   customerEmail: string;
   note: string;
+  status: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
   createdAt: string;
 }
 

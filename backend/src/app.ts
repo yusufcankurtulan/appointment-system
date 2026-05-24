@@ -9,7 +9,7 @@ import { getProjectRoot, isLambda } from "./paths.js";
 import { CATEGORIES } from "./categories.js";
 import { normalizeSite } from "./normalize.js";
 import { getAvailableSlots } from "./slots.js";
-import { createAppointment, listAppointments } from "./appointmentStore.js";
+import { createAppointment, listAppointments, updateAppointmentStatus } from "./appointmentStore.js";
 import { loginHandler, requireAuth } from "./auth.js";
 import { getSettingsHandler, updateSettingsHandler } from "./settingsRoutes.js";
 
@@ -173,6 +173,28 @@ export function createApp(): express.Application {
     res.json(appointments.sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)));
   }));
 
+  app.patch("/api/owner/:slug/appointments/:id", asyncHandler(async (req, res) => {
+    const token = String(req.body.token || "").trim();
+    const action = String(req.body.action || "").trim();
+    const rejectionReason = String(req.body.rejectionReason || "").trim();
+    if (!token) return res.status(400).json({ error: "Token gerekli." });
+    const site = await getSite(req.params.slug);
+    if (!site) return res.status(404).json({ error: "Site bulunamadı." });
+    if (!site.ownerToken || site.ownerToken !== token) {
+      return res.status(403).json({ error: "Geçersiz token." });
+    }
+    if (action !== "approve" && action !== "reject") {
+      return res.status(400).json({ error: "Geçersiz işlem." });
+    }
+    const appointment = await updateAppointmentStatus(
+      site.slug,
+      req.params.id,
+      action === "approve" ? "approved" : "rejected",
+      action === "reject" ? rejectionReason : undefined
+    );
+    res.json({ appointment });
+  }));
+
   app.post("/api/sites", requireAuth, asyncHandler(async (req, res) => {
     const body = req.body as Partial<SiteProfileInput>;
     const error = validateInput(body);
@@ -215,6 +237,15 @@ export function createApp(): express.Application {
     button { cursor: pointer; border: none; background: #2563eb; color: white; padding: .85rem 1.1rem; border-radius: 8px; font-weight: 600; }
     .message { margin: 1rem 0; padding: 1rem; border-radius: 10px; background: #f8fafc; }
     .message.error { background: #fee2e2; color: #991b1b; }
+    .appointment-status { display: inline-flex; align-items: center; gap: .4rem; margin-top: .5rem; font-size: .95rem; }
+    .status-pill { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-weight: 700; color: white; }
+    .status-pending { background: #f59e0b; }
+    .status-approved { background: #16a34a; }
+    .status-rejected { background: #ef4444; }
+    .appointment-actions { margin-top: .85rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+    .appointment-actions button { background: #2563eb; transition: background .2s ease; }
+    .appointment-actions button.reject { background: #dc2626; }
+    .appointment-actions button:disabled { opacity: .6; cursor: not-allowed; }
     .appointments { list-style: none; padding: 0; margin: 0; }
     .appointments li { border-bottom: 1px solid #e5e7eb; padding: 1rem 0; }
     .appointments li:last-child { border-bottom: none; }
@@ -261,19 +292,64 @@ export function createApp(): express.Application {
           return;
         }
         showStatus(data.length + " randevu bulundu.");
-        list.innerHTML = data
-          .map((a) =>
-            '<li>' +
-            '<strong>' + a.date + ' ' + a.time + '</strong>' +
-            '<div class="appointment-meta">' + a.customerName + ' — ' + a.customerPhone + (a.customerEmail ? ' | ' + a.customerEmail : '') + '</div>' +
-            (a.note ? '<div class="appointment-meta">Not: ' + a.note + '</div>' : '') +
-            '</li>'
-          )
-          .join("");
+            list.innerHTML = data
+              .map((a) => {
+                const statusClass = a.status === "pending" ? "status-pending" : a.status === "approved" ? "status-approved" : "status-rejected";
+                const statusLabel = a.status === "pending" ? "Beklemede" : a.status === "approved" ? "Onaylandı" : "Reddedildi";
+                const actions = a.status === "pending"
+                  ? '<div class="appointment-actions">' +
+                    '<button data-id="' + a.id + '" data-action="approve">Onayla</button>' +
+                    '<button class="reject" data-id="' + a.id + '" data-action="reject">Reddet</button>' +
+                    '</div>'
+                  : '';
+                return '<li>' +
+                  '<strong>' + a.date + ' ' + a.time + '</strong>' +
+                  '<div class="appointment-meta">' + a.customerName + ' — ' + a.customerPhone + (a.customerEmail ? ' | ' + a.customerEmail : '') + '</div>' +
+                  (a.note ? '<div class="appointment-meta">Not: ' + a.note + '</div>' : '') +
+                  '<div class="appointment-status"><span class="status-pill ' + statusClass + '">' + statusLabel + '</span>' +
+                  (a.rejectionReason ? '<span>Sebep: ' + a.rejectionReason + '</span>' : '') +
+                  '</div>' +
+                  actions +
+                  '</li>';
+              })
+              .join("");
+            Array.from(document.querySelectorAll(".appointment-actions button")).forEach((button) => {
+              button.addEventListener("click", async (event) => {
+                const target = event.currentTarget;
+                if (!(target instanceof HTMLButtonElement)) return;
+                const id = target.dataset.id;
+                const action = target.dataset.action;
+                if (!id || !action) return;
+                await changeAppointmentStatus(token, id, action);
+              });
+            });
       } catch (err) {
         showStatus(err.message, true);
       }
     }
+
+        async function changeAppointmentStatus(token, id, action) {
+          showStatus("İşlem yapılıyor...");
+          try {
+            const body = { token, action };
+            if (action === "reject") {
+              const reason = window.prompt("Reddetme sebebi (opsiyonel):", "");
+              if (reason === null) return loadAppointments(token);
+              body.rejectionReason = reason;
+            }
+            const res = await fetch('/api/owner/' + encodeURIComponent(slug) + '/appointments/' + encodeURIComponent(id), {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Durum güncellenemedi.');
+            showStatus('Randevu ' + (action === 'approve' ? 'onaylandı.' : 'reddedildi.'));
+            loadAppointments(token);
+          } catch (err) {
+            showStatus(err.message, true);
+          }
+        }
 
     loadBtn.addEventListener("click", () => {
       const token = tokenInput.value.trim();
